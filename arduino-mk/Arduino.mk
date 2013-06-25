@@ -326,8 +326,9 @@ endif #ndef AVR_TOOLS_DIR
 
 ARDUINO_LIB_PATH  = $(ARDUINO_DIR)/libraries
 $(call show_config_variable,ARDUINO_LIB_PATH,[COMPUTED],(from ARDUINO_DIR))
+ifndef USERSPACE_MAKE
 ARDUINO_CORE_PATH = $(ARDUINO_DIR)/hardware/arduino/cores/arduino
-
+endif
 # Third party hardware and core like ATtiny or ATmega 16
 ifdef ALTERNATE_CORE
     $(call show_config_variable,ALTERNATE_CORE,[USER])
@@ -415,6 +416,9 @@ endif
 ########################################################################
 # Reset
 #
+# Added the following for compatibility with Arduino Userspace
+ifndef USERSPACE_MAKE
+
 ifeq ($(BOARD_TAG),leonardo)
     LEO_RESET = 1
 endif
@@ -448,7 +452,7 @@ else
     ERROR_ON_LEONARDO =
 endif
 
-
+endif
 ########################################################################
 # boards.txt parsing
 #
@@ -482,6 +486,8 @@ ifeq ($(strip $(NO_CORE)),)
     ifndef VARIANT
         VARIANT = $(shell $(PARSE_BOARD_CMD) $(BOARD_TAG) build.variant)
     endif
+
+    ifndef USERSPACE_MAKE
 
     # processor stuff
     ifndef MCU
@@ -537,6 +543,8 @@ ifeq ($(strip $(NO_CORE)),)
         HEX_MAXIMUM_SIZE  = $(shell $(PARSE_BOARD_CMD) $(BOARD_TAG) upload.maximum_size)
     endif
 
+    endif #USERSPACE_MAKE
+
 endif
 
 # Everything gets built in here (include BOARD_TAG now)
@@ -564,6 +572,16 @@ LOCAL_OBJ_FILES = $(LOCAL_C_SRCS:.c=.o)   $(LOCAL_CPP_SRCS:.cpp=.o) \
 		$(LOCAL_INO_SRCS:.ino=.o) $(LOCAL_AS_SRCS:.S=.o)
 LOCAL_OBJS      = $(patsubst %,$(OBJDIR)/%,$(LOCAL_OBJ_FILES))
 
+# Variant sources
+#
+VARIANT_C_SRCS  = $(wildcard $(USERSPACE_VAR_PATH)/*.c)
+VARIANT_CPP_SRCS  = $(wildcard $(USERSPACE_VAR_PATH)/*.cpp)
+
+VARIANT_OBJ_FILES  = $(VARIANT_C_SRCS:.c=.o) $(VARIANT_CPP_SRCS:.cpp=.o)
+VARIANT_OBJS       = $(patsubst $(USERSPACE_VAR_PATH)/%,  \
+                $(OBJDIR)/%,$(VARIANT_OBJ_FILES))
+
+
 # If NO_CORE is not set, then we need exactly one .pde or .ino file
 ifeq ($(strip $(NO_CORE)),)
 
@@ -586,7 +604,6 @@ ifeq ($(strip $(NO_CORE)),)
     ifdef ARDUINO_CORE_PATH
         CORE_C_SRCS     = $(wildcard $(ARDUINO_CORE_PATH)/*.c)
         CORE_CPP_SRCS   = $(wildcard $(ARDUINO_CORE_PATH)/*.cpp)
-
         ifneq ($(strip $(NO_CORE_MAIN_CPP)),)
             CORE_CPP_SRCS := $(filter-out %main.cpp, $(CORE_CPP_SRCS))
             $(call show_config_info,NO_CORE_MAIN_CPP set so core library will not include main.cpp,[MANUAL])
@@ -663,6 +680,20 @@ TARGETS    = $(OBJDIR)/$(TARGET).*
 CORE_LIB   = $(OBJDIR)/libcore.a
 
 # Names of executables
+
+ifdef USERSPACE_MAKE
+
+CC      = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-gcc
+CXX     = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-g++
+AS      = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-as
+OBJCOPY = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-objcopy
+OBJDUMP = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-objdump
+AR      = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-ar
+SIZE    = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-size
+NM      = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-nm
+
+else
+
 CC      = $(AVR_TOOLS_PATH)/avr-gcc
 CXX     = $(AVR_TOOLS_PATH)/avr-g++
 AS      = $(AVR_TOOLS_PATH)/avr-as
@@ -671,6 +702,9 @@ OBJDUMP = $(AVR_TOOLS_PATH)/avr-objdump
 AR      = $(AVR_TOOLS_PATH)/avr-ar
 SIZE    = $(AVR_TOOLS_PATH)/avr-size
 NM      = $(AVR_TOOLS_PATH)/avr-nm
+
+endif
+
 REMOVE  = rm -rf
 MV      = mv -f
 CAT     = cat
@@ -705,7 +739,7 @@ USER_LIB_OBJS = $(patsubst $(USER_LIB_PATH)/%.cpp,$(OBJDIR)/libs/%.o,$(USER_LIB_
         $(patsubst $(USER_LIB_PATH)/%.c,$(OBJDIR)/libs/%.o,$(USER_LIB_C_SRCS))
 
 # Dependency files
-DEPS            = $(LOCAL_OBJS:.o=.d) $(LIB_OBJS:.o=.d) $(USER_LIB_OBJS:.o=.d) $(CORE_OBJS:.o=.d)
+DEPS            = $(LOCAL_OBJS:.o=.d) $(LIB_OBJS:.o=.d) $(USER_LIB_OBJS:.o=.d) $(CORE_OBJS:.o=.d) $(VARIANT_OBJS:.o=.d)
 
 # Optimization level for the compiler.
 # You can get the list of options at http://www.nongnu.org/avr-libc/user-manual/using_tools.html#gcc_optO
@@ -718,21 +752,38 @@ else
 endif
 
 # Using += instead of =, so that CPPFLAGS can be set per sketch level
+ifdef USERSPACE_MAKE
+CPPFLAGS      += -I. -I$(ARDUINO_CORE_PATH) -I$(ARDUINO_VAR_PATH)/$(VARIANT) \
+        $(SYS_INCLUDES) $(USER_INCLUDES) -g -Wall
+$(call show_config_variable,ARDUINO_CORE_PATH,[DEFAULT])
+else
 CPPFLAGS      += -mmcu=$(MCU) -DF_CPU=$(F_CPU) -DARDUINO=$(ARDUINO_VERSION) \
         -I. -I$(ARDUINO_CORE_PATH) -I$(ARDUINO_VAR_PATH)/$(VARIANT) \
         $(SYS_INCLUDES) $(USER_INCLUDES) -g -O$(OPTIMIZATION_LEVEL) -Wall \
         -ffunction-sections -fdata-sections
-
+endif
 # USB IDs for the Leonardo
 ifeq ($(VARIANT),leonardo)
     CPPFLAGS += -DUSB_VID=$(USB_VID) -DUSB_PID=$(USB_PID)
 endif
+
+ifdef USERSPACE_MAKE
+
+CFLAGS        += $(EXTRA_FLAGS) $(EXTRA_CFLAGS)
+CXXFLAGS      += $(EXTRA_FLAGS) $(EXTRA_CXXFLAGS)
+ASFLAGS       += -I. -x assembler-with-cpp
+LDFLAGS       += -Wl,--gc-sections $(EXTRA_FLAGS) $(EXTRA_CXXFLAGS)
+SIZEFLAGS     ?= -C
+
+else
 
 CFLAGS        += -std=gnu99 $(EXTRA_FLAGS) $(EXTRA_CFLAGS)
 CXXFLAGS      += -fno-exceptions $(EXTRA_FLAGS) $(EXTRA_CXXFLAGS)
 ASFLAGS       += -mmcu=$(MCU) -I. -x assembler-with-cpp
 LDFLAGS       += -mmcu=$(MCU) -Wl,--gc-sections -O$(OPTIMIZATION_LEVEL) $(EXTRA_FLAGS) $(EXTRA_CXXFLAGS)
 SIZEFLAGS     ?= --mcu=$(MCU) -C
+
+endif #USERSPACE_MAKE
 
 # Returns the Arduino port (first wildcard expansion) if it exists, otherwise it errors.
 get_arduino_port = $(if $(wildcard $(ARDUINO_PORT)),$(firstword $(wildcard $(ARDUINO_PORT))),$(error Arduino port $(ARDUINO_PORT) not found!))
@@ -752,6 +803,8 @@ else
     $(call show_config_info,Size utility: Basic (not AVR-aware),[AUTODETECTED])
 endif
 
+
+
 ifneq (,$(strip $(ARDUINO_LIBS)))
     $(call arduino_output,-)
     $(call show_config_info,ARDUINO_LIBS =)
@@ -764,6 +817,8 @@ endif
 ifneq (,$(strip $(SYS_LIB_NAMES)))
     $(foreach lib,$(SYS_LIB_NAMES),$(call show_config_info,  $(lib),[SYSTEM]))
 endif
+
+$(call show_config_variable,USERSPACE_VAR_PATH, [USER])
 
 # end of config output
 $(call show_separator)
@@ -830,6 +885,12 @@ $(OBJDIR)/%.s: %.pde $(COMMON_DEPS) | $(OBJDIR)
 $(OBJDIR)/%.s: %.ino $(COMMON_DEPS) | $(OBJDIR)
 	$(CXX) -x c++ -include Arduino.h -MMD -S -fverbose-asm $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 
+# variants
+$(OBJDIR)/%.o: $(USERSPACE_VAR_PATH)/%.c $(COMMON_DEPS) | $(OBJDIR)
+	$(CC) -MMD -c $(CPPFLAGS) $(CFLAGS) $< -o $@
+$(OBJDIR)/%.o: $(USERSPACE_VAR_PATH)/%.cpp $(COMMON_DEPS) | $(OBJDIR)
+	$(CXX) -MMD -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
+
 #$(OBJDIR)/%.lst: $(OBJDIR)/%.s
 #	$(AS) -mmcu=$(MCU) -alhnd $< > $@
 
@@ -839,6 +900,7 @@ $(OBJDIR)/%.o: $(ARDUINO_CORE_PATH)/%.c $(COMMON_DEPS) | $(OBJDIR)
 
 $(OBJDIR)/%.o: $(ARDUINO_CORE_PATH)/%.cpp $(COMMON_DEPS) | $(OBJDIR)
 	$(CXX) -MMD -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
+
 
 # various object conversions
 $(OBJDIR)/%.hex: $(OBJDIR)/%.elf $(COMMON_DEPS)
@@ -954,8 +1016,8 @@ $(OBJDIR):
 $(TARGET_ELF): 	$(LOCAL_OBJS) $(CORE_LIB) $(OTHER_OBJS)
 		$(CC) $(LDFLAGS) -o $@ $(LOCAL_OBJS) $(CORE_LIB) $(OTHER_OBJS) -lc -lm
 
-$(CORE_LIB):	$(CORE_OBJS) $(LIB_OBJS) $(USER_LIB_OBJS)
-		$(AR) rcs $@ $(CORE_OBJS) $(LIB_OBJS) $(USER_LIB_OBJS)
+$(CORE_LIB):	$(CORE_OBJS) $(LIB_OBJS) $(USER_LIB_OBJS) $(VARIANT_OBJS)
+		$(AR) rcs $@ $(CORE_OBJS) $(LIB_OBJS) $(USER_LIB_OBJS) $(VARIANT_OBJS)
 
 error_on_leonardo:
 		$(ERROR_ON_LEONARDO)
