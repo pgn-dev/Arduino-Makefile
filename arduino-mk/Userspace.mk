@@ -327,6 +327,13 @@ ifndef OBJDIR
 else
     $(call show_config_variable,OBJDIR,[USER])
 endif
+#CROSS COMPILE
+ifndef CROSS_COMPILE
+    CROSS_COMPILE = arm-angstrom-linux-gnueabi
+    $(call show_config_variable,CROSS_COMPILE,[DEFAULT])
+else
+    $(call show_config_variable,CROSS_COMPILE,[USER])
+endif
 
 ########################################################################
 # Local sources
@@ -421,15 +428,15 @@ TARGETS    = $(OBJDIR)/$(TARGET).*
 CORE_LIB   = $(OBJDIR)/libcore.a
 
 # Names of executables
+CC      = $(ARM_TOOLS)/$(CROSS_COMPILE)-gcc
+CXX     = $(ARM_TOOLS)/$(CROSS_COMPILE)-g++
+AS      = $(ARM_TOOLS)/$(CROSS_COMPILE)-as
+OBJCOPY = $(ARM_TOOLS)/$(CROSS_COMPILE)-objcopy
+OBJDUMP = $(ARM_TOOLS)/$(CROSS_COMPILE)-objdump
+AR      = $(ARM_TOOLS)/$(CROSS_COMPILE)-ar
+SIZE    = $(ARM_TOOLS)/$(CROSS_COMPILE)-size
+NM      = $(ARM_TOOLS)/$(CROSS_COMPILE)-nm
 
-CC      = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-gcc
-CXX     = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-g++
-AS      = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-as
-OBJCOPY = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-objcopy
-OBJDUMP = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-objdump
-AR      = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-ar
-SIZE    = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-size
-NM      = $(ARM_TOOLS)/arm-angstrom-linux-gnueabi-nm
 
 REMOVE  = rm -rf
 MV      = mv -f
