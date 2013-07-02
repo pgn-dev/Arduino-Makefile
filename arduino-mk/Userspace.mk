@@ -254,12 +254,6 @@ endif
 ########################################################################
 # Arduino and system paths
 #
-ifndef ARM_TOOLS
-	ARM_TOOLS = /usr/local/angstrom/arm/bin
-    $(call show_config_variable,ARM_TOOLS,[DEFAULT])
-else
-    $(call show_config_variable,ARM_TOOLS,[USER])
-endif #ndef ARM_TOOLS
 
 USERSPACE_CORE_PATH = $(ARDUINO_DIR)/hardware/userspace/cores/virtual
 $(call show_config_variable,USERSPACE_CORE_PATH,[DEFAULT])
@@ -329,7 +323,7 @@ else
 endif
 #CROSS COMPILE
 ifndef CROSS_COMPILE
-    CROSS_COMPILE = arm-angstrom-linux-gnueabi
+    CROSS_COMPILE = arm-angstrom-linux-gnueabi-
     $(call show_config_variable,CROSS_COMPILE,[DEFAULT])
 else
     $(call show_config_variable,CROSS_COMPILE,[USER])
@@ -428,14 +422,14 @@ TARGETS    = $(OBJDIR)/$(TARGET).*
 CORE_LIB   = $(OBJDIR)/libcore.a
 
 # Names of executables
-CC      = $(ARM_TOOLS)/$(CROSS_COMPILE)-gcc
-CXX     = $(ARM_TOOLS)/$(CROSS_COMPILE)-g++
-AS      = $(ARM_TOOLS)/$(CROSS_COMPILE)-as
-OBJCOPY = $(ARM_TOOLS)/$(CROSS_COMPILE)-objcopy
-OBJDUMP = $(ARM_TOOLS)/$(CROSS_COMPILE)-objdump
-AR      = $(ARM_TOOLS)/$(CROSS_COMPILE)-ar
-SIZE    = $(ARM_TOOLS)/$(CROSS_COMPILE)-size
-NM      = $(ARM_TOOLS)/$(CROSS_COMPILE)-nm
+CC      = $(CROSS_COMPILE)gcc
+CXX     = $(CROSS_COMPILE)g++
+AS      = $(CROSS_COMPILE)as
+OBJCOPY = $(CROSS_COMPILE)objcopy
+OBJDUMP = $(CROSS_COMPILE)objdump
+AR      = $(CROSS_COMPILE)ar
+SIZE    = $(CROSS_COMPILE)size
+NM      = $(CROSS_COMPILE)nm
 
 
 REMOVE  = rm -rf
