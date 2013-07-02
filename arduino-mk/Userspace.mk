@@ -265,7 +265,7 @@ USERSPACE_CORE_PATH = $(ARDUINO_DIR)/hardware/userspace/cores/virtual
 $(call show_config_variable,USERSPACE_CORE_PATH,[DEFAULT])
 
 ifndef USERSPACE_VAR_PATH
-    USERSPACE_VAR_PATH  = $(USERSPACE_CORE_PATH)/variants/beaglebone
+    USERSPACE_VAR_PATH  = $(ARDUINO_DIR)/hardware/userspace/variants/beaglebone
     $(call show_config_variable,USERSPACE_VAR_PATH,[COMPUTED],(from USERSPACE_CORE_PATH))
 endif
 
@@ -381,10 +381,10 @@ ifeq ($(strip $(NO_CORE)),)
             CORE_CPP_SRCS := $(filter-out %main.cpp, $(CORE_CPP_SRCS))
             $(call show_config_info,NO_CORE_MAIN_CPP set so core library will not include main.cpp,[MANUAL])
         endif
-
         CORE_OBJ_FILES  = $(CORE_C_SRCS:.c=.o) $(CORE_CPP_SRCS:.cpp=.o)
-        CORE_OBJS       = $(patsubst $(ARDUINO_CORE_PATH)/%,  \
+        CORE_OBJS       = $(patsubst $(USERSPACE_CORE_PATH)/%,  \
                 $(OBJDIR)/%,$(CORE_OBJ_FILES))
+        
     endif
 else
     $(call show_config_info,NO_CORE set so core library will not be built,[MANUAL])
@@ -478,16 +478,9 @@ else
 endif
 
 # Using += instead of =, so that CPPFLAGS can be set per sketch level
-ifdef USERSPACE_MAKE
-CPPFLAGS      += -I. -I$(ARDUINO_CORE_PATH) -I$(ARDUINO_VAR_PATH)/$(VARIANT) \
+CPPFLAGS      += -I. -I$(USERSPACE_CORE_PATH) -I$(USERSPACE_VAR_PATH)/$(VARIANT) \
         $(SYS_INCLUDES) $(USER_INCLUDES) -g -Wall
-$(call show_config_variable,ARDUINO_CORE_PATH,[DEFAULT])
-else
-CPPFLAGS      += -mmcu=$(MCU) -DF_CPU=$(F_CPU) -DARDUINO=$(ARDUINO_VERSION) \
-        -I. -I$(ARDUINO_CORE_PATH) -I$(ARDUINO_VAR_PATH)/$(VARIANT) \
-        $(SYS_INCLUDES) $(USER_INCLUDES) -g -O$(OPTIMIZATION_LEVEL) -Wall \
-        -ffunction-sections -fdata-sections
-endif
+$(call show_config_variable,USERSPACE_CORE_PATH,[DEFAULT])
 # USB IDs for the Leonardo
 ifeq ($(VARIANT),leonardo)
     CPPFLAGS += -DUSB_VID=$(USB_VID) -DUSB_PID=$(USB_PID)
@@ -602,10 +595,10 @@ $(OBJDIR)/%.o: $(USERSPACE_VAR_PATH)/%.cpp $(COMMON_DEPS) | $(OBJDIR)
 #	$(AS) -mmcu=$(MCU) -alhnd $< > $@
 
 # core files
-$(OBJDIR)/%.o: $(ARDUINO_CORE_PATH)/%.c $(COMMON_DEPS) | $(OBJDIR)
+$(OBJDIR)/%.o: $(USERSPACE_CORE_PATH)/%.c $(COMMON_DEPS) | $(OBJDIR)
 	$(CC) -MMD -c $(CPPFLAGS) $(CFLAGS) $< -o $@
 
-$(OBJDIR)/%.o: $(ARDUINO_CORE_PATH)/%.cpp $(COMMON_DEPS) | $(OBJDIR)
+$(OBJDIR)/%.o: $(USERSPACE_CORE_PATH)/%.cpp $(COMMON_DEPS) | $(OBJDIR)
 	$(CXX) -MMD -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 
 
