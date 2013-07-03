@@ -7,14 +7,14 @@
 
 void setup() {                
   // initialize the digital pin as an output.
-  // Pin 13 has an LED connected on most Arduino boards:
-  // pinMode(13, OUTPUT);
-  digitalWrite(15, 1);     
+  // Pin 15 has an LED connected on Beaglebone Black:
+  digitalWrite(15, 1);
 }
 
 void loop() {
-  //digitalWrite(13, HIGH);   // set the LED on
-  //delay(1000);              // wait for a second
-  //digitalWrite(13, LOW);    // set the LED off
-  //delay(1000);              // wait for a second
+  digitalWrite(15, 1);   // set the LED on
+  delay(1000);              // wait for a second
+  digitalWrite(15, 0);    // set the LED off
+  delay(1000);              // wait for a second
 }
+
