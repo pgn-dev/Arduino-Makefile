@@ -407,7 +407,7 @@ endif
 # Include file to use for old .pde files
 #
 ifndef ARDUINO_HEADER
-        ARDUINO_HEADER=Arduino.h
+        ARDUINO_HEADER=linux-virtual.h
 endif
 
 ########################################################################
@@ -577,14 +577,14 @@ $(OBJDIR)/%.o: %.pde $(COMMON_DEPS) | $(OBJDIR)
 
 # the ino -> o file
 $(OBJDIR)/%.o: %.ino $(COMMON_DEPS) | $(OBJDIR)
-	$(CXX) -x c++ -include Arduino.h -MMD -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
+	$(CXX) -x c++ -include linux-virtual.h -MMD -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 
 # generated assembly
 $(OBJDIR)/%.s: %.pde $(COMMON_DEPS) | $(OBJDIR)
 	$(CXX) -x c++ -include $(ARDUINO_HEADER) -MMD -S -fverbose-asm $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 
 $(OBJDIR)/%.s: %.ino $(COMMON_DEPS) | $(OBJDIR)
-	$(CXX) -x c++ -include Arduino.h -MMD -S -fverbose-asm $(CPPFLAGS) $(CXXFLAGS) $< -o $@
+	$(CXX) -x c++ -include linux-virtual.h -MMD -S -fverbose-asm $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 
 # variants
 $(OBJDIR)/%.o: $(USERSPACE_VAR_PATH)/%.c $(COMMON_DEPS) | $(OBJDIR)
